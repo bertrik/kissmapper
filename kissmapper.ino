@@ -30,8 +30,6 @@ static void set_rgb_led(uint8_t R, uint8_t G, uint8_t B);
 static TheThingsNetwork ttn(loraSerial, usbserial, TTN_FP_EU868);
 static bool ttn_ok = true;
 
-static uint16_t hwEui_16_bits = 0;
-static char hwEui_char_array[16 + 1];   //16 chars + \0
 static char line[120];
 
 // printf style formatting to the debug port, maximum length of line is 128
@@ -129,19 +127,6 @@ static void set_rgb_led(uint8_t r, uint8_t g, uint8_t b)
     digitalWrite(PIN_LED_RED, !r);
     digitalWrite(PIN_LED_GREEN, !g);
     digitalWrite(PIN_LED_BLUE, !b);
-}
-
-//! \brief This function is used to convert ascii-hex string to integer
-static uint8_t ascii_hex_to_nibble(char ascii_hex)
-{
-    uint8_t return_value = 0;
-
-    if ((ascii_hex >= 'A') && (ascii_hex <= 'F')) {
-        return_value |= (ascii_hex - ('A' - 10));
-    } else if ((ascii_hex >= '0') && (ascii_hex <= '9')) {
-        return_value |= (ascii_hex - '0');
-    }
-    return return_value;
 }
 
 static void show_help(const cmd_t * cmds)
