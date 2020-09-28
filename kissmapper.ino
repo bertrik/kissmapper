@@ -273,7 +273,7 @@ void loop(void)
         last_sent = ms;
         if (ttn_ok) {
             set_rgb_led(0, 0, 1);
-            ttn_ok = ttn.poll();
+            ttn_ok = (ttn.poll() == TTN_SUCCESSFUL_TRANSMISSION);
             if (ttn_ok) {
                 set_rgb_led(0, 0, 0);
             } else {
