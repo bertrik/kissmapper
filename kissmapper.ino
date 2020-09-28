@@ -28,6 +28,7 @@ static void set_rgb_led(uint8_t R, uint8_t G, uint8_t B);
 
 //Global variables
 static TheThingsNetwork ttn(loraSerial, usbserial, TTN_FP_EU868);
+static bool ttn_ok = true;
 
 static uint16_t hwEui_16_bits = 0;
 static char hwEui_char_array[16 + 1];   //16 chars + \0
@@ -85,9 +86,16 @@ void setup(void)
 
     usbserial.println(F("--- Resetting RN module"));
     ttn.reset(false);
+    
+    // attempt to resume from previously set session
+    ttn_ok = ttn.personalize();
 
-    // green when initialized
-    set_rgb_led(0, 1, 0);
+    // green when initialized, red when error
+    if (ttn_ok) {
+        set_rgb_led(0, 1, 0);
+    } else {
+        set_rgb_led(1, 0, 0);
+    }
 }
 
 //! \brief Return current value (0-7) from the rotary switch.
@@ -153,7 +161,7 @@ static int do_led(int argc, char *argv[])
     int b = (strcmp("0", argv[3]) != 0);
     print("set_rgb_led(%d,%d,%d)\n", r, g, b);
     set_rgb_led(r, g, b);
-    return 0;
+    return CMD_OK;
 }
 
 static int do_lora(int argc, char *argv[])
@@ -163,13 +171,58 @@ static int do_lora(int argc, char *argv[])
     }
     bool on = (strcmp("0", argv[1]) != 0);
     set_lora_led(on);
-    return 0;
+    return CMD_OK;
+}
+
+static int do_ttn(int argc, char *argv[])
+{
+    if (argc < 2) {
+        return CMD_PARAMS;
+    }
+
+    char *cmd = argv[1];
+    if (strcmp(cmd, "reset")  == 0) {
+        ttn.reset(false);
+    } else if (strcmp(cmd, "status") == 0) {
+        ttn.showStatus();
+    } else if (strcmp(cmd, "join") == 0) {
+        print("OTAA join...\n");
+        bool result = ttn.join(1);
+        return result ? CMD_OK : -1;
+    } else if (strcmp(cmd, "abp") == 0) {
+        bool result;
+        if (argc == 5) {
+            print("ABP setup (devadr=%s, network key=%s, session key=%s)...\n", argv[2], argv[3], argv[4]);
+            result = ttn.personalize(argv[2], argv[3], argv[4]);
+            if (result) {
+                ttn.saveState();
+            }
+        } else {
+            print("ABP setup ()...");
+            result = ttn.personalize();
+        }
+        print("%s\n", result ? "OK" : "FAIL");
+    } else if (strcmp(cmd, "otaa") == 0) {
+        if (argc == 4) {
+            print("OTAA setup (appeui=%s, appkey=%s)...\n", argv[2], argv[3]);
+            bool result = ttn.provision(argv[2], argv[3]);
+            return result ? 0 : -1;
+        } else {
+            return CMD_PARAMS;
+        }
+    } else if (strcmp(cmd, "poll") == 0) {
+        return (ttn.poll() == TTN_SUCCESSFUL_TRANSMISSION) ? CMD_OK : -1;
+    } else {
+        return CMD_PARAMS;
+    }
+    return CMD_OK;
 }
 
 static int do_help(int argc, char *argv[]);
 const cmd_t commands[] = {
     { "led", do_led, "<r|g|b> <0|1> set red, green or blue led" },
     { "lora", do_lora, "<0|1> set the LoRa LED" },
+    { "ttn", do_ttn, "TTN operations" },
     { "help", do_help, "Show help" },
     { NULL, NULL, NULL }
 };
@@ -184,6 +237,7 @@ void loop(void)
 {
     static int last_rotary = 0;
     static int last_button = 0;
+    static unsigned long last_sent = 0;
 
     // parse command line
     bool haveLine = false;
@@ -225,6 +279,21 @@ void loop(void)
     if (button != last_button) {
         print("Button: %d\n", button);
         last_button = button;
+    }
+    
+    // send periodic poll
+    unsigned long ms = millis();
+    if ((ms - last_sent) > 10000) {
+        last_sent = ms;
+        if (ttn_ok) {
+            set_rgb_led(0, 0, 1);
+            ttn_ok = ttn.poll();
+            if (ttn_ok) {
+                set_rgb_led(0, 0, 0);
+            } else {
+                set_rgb_led(1, 0, 0);
+            }
+        }
     }
 
 }
