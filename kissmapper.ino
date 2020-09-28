@@ -16,7 +16,7 @@
 #define PIN_ROTARY_SW1  13      // PC7
 #define PIN_ROTARY_SW2  9       // PB5
 #define PIN_ROTARY_SW3  30      // PD5
-#define PIN_BUTTON      7      // PE6
+#define PIN_BUTTON      7       // PE6
 
 //Define both serial interfaces for easier use
 #define loraSerial			Serial1
@@ -86,7 +86,7 @@ void setup(void)
 
     usbserial.println(F("--- Resetting RN module"));
     ttn.reset(false);
-    
+
     // attempt to resume from previously set session
     ttn_ok = ttn.personalize();
 
@@ -181,7 +181,7 @@ static int do_ttn(int argc, char *argv[])
     }
 
     char *cmd = argv[1];
-    if (strcmp(cmd, "reset")  == 0) {
+    if (strcmp(cmd, "reset") == 0) {
         ttn.reset(false);
     } else if (strcmp(cmd, "status") == 0) {
         ttn.showStatus();
@@ -192,7 +192,8 @@ static int do_ttn(int argc, char *argv[])
     } else if (strcmp(cmd, "abp") == 0) {
         bool result;
         if (argc == 5) {
-            print("ABP setup (devadr=%s, network key=%s, session key=%s)...\n", argv[2], argv[3], argv[4]);
+            print("ABP setup (devadr=%s, network key=%s, session key=%s)...\n", argv[2], argv[3],
+                  argv[4]);
             result = ttn.personalize(argv[2], argv[3], argv[4]);
             if (result) {
                 ttn.saveState();
@@ -268,7 +269,7 @@ void loop(void)
         }
         print(">");
     }
-    
+
     // show changes in button and rotary position
     int rotary = get_rotary_value();
     if (rotary != last_rotary) {
@@ -280,7 +281,7 @@ void loop(void)
         print("Button: %d\n", button);
         last_button = button;
     }
-    
+
     // send periodic poll
     unsigned long ms = millis();
     if ((ms - last_sent) > 10000) {
