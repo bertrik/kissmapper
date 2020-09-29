@@ -159,53 +159,86 @@ static int do_lora(int argc, char *argv[])
     return CMD_OK;
 }
 
+static int do_ttn_reset(int argc, char *argv[])
+{
+    ttn.reset(false);
+    return 0;
+}
+
+static int do_ttn_status(int argc, char *argv[])
+{
+    ttn.showStatus();
+    return 0;
+}
+
+static int do_ttn_join(int argc, char *argv[])
+{
+    print("OTAA join...\n");
+    return ttn.join(1) ? CMD_OK : -1;
+}
+
+static int do_ttn_poll(int argc, char *argv[])
+{
+    return (ttn.poll() == TTN_SUCCESSFUL_TRANSMISSION) ? CMD_OK : -1;
+}
+
+static int do_ttn_abp(int argc, char *argv[])
+{
+    bool result;
+    if (argc == 4) {
+        print("ABP setup (devadr=%s, network key=%s, session key=%s)...\n", argv[1], argv[2],
+              argv[3]);
+        result = ttn.personalize(argv[1], argv[2], argv[3]);
+        if (result) {
+            ttn.saveState();
+        }
+    } else {
+        print("ABP setup ()...");
+        result = ttn.personalize();
+    }
+    return result ? CMD_OK : -1;
+}
+
+static int do_ttn_otaa(int argc, char *argv[])
+{
+    if (argc < 3) {
+        return CMD_PARAMS;
+    }
+    print("OTAA setup (appeui=%s, appkey=%s)...\n", argv[1], argv[2]);
+    bool result = ttn.provision(argv[1], argv[2]);
+    return result ? CMD_OK : -1;
+}
+
+// ttn subcommands
+static const cmd_t ttn_commands[] = {
+    { "reset", do_ttn_reset, "Resets the RN2483" },
+    { "status", do_ttn_status, "Shows RN2483 status" },
+    { "join", do_ttn_join, "Try to join" },
+    { "poll", do_ttn_poll, "Poll the network" },
+    { "abp", do_ttn_abp, "<devadr> <nwkkey> <seskey> Perform ABP" },
+    { "otaa", do_ttn_otaa, "<appeui> <appkey> Perform OTAA" },
+    { NULL, NULL, NULL }
+};
+
 static int do_ttn(int argc, char *argv[])
 {
     if (argc < 2) {
-        return CMD_PARAMS;
+        print("Available '%s' commands\n", argv[0]);
+        show_help(ttn_commands);
+        return CMD_OK;
     }
 
-    char *cmd = argv[1];
-    if (strcmp(cmd, "reset") == 0) {
-        ttn.reset(false);
-    } else if (strcmp(cmd, "status") == 0) {
-        ttn.showStatus();
-    } else if (strcmp(cmd, "join") == 0) {
-        print("OTAA join...\n");
-        bool result = ttn.join(1);
-        return result ? CMD_OK : -1;
-    } else if (strcmp(cmd, "abp") == 0) {
-        bool result;
-        if (argc == 5) {
-            print("ABP setup (devadr=%s, network key=%s, session key=%s)...\n", argv[2], argv[3],
-                  argv[4]);
-            result = ttn.personalize(argv[2], argv[3], argv[4]);
-            if (result) {
-                ttn.saveState();
-            }
-        } else {
-            print("ABP setup ()...");
-            result = ttn.personalize();
-        }
-        print("%s\n", result ? "OK" : "FAIL");
-    } else if (strcmp(cmd, "otaa") == 0) {
-        if (argc == 4) {
-            print("OTAA setup (appeui=%s, appkey=%s)...\n", argv[2], argv[3]);
-            bool result = ttn.provision(argv[2], argv[3]);
-            return result ? 0 : -1;
-        } else {
-            return CMD_PARAMS;
-        }
-    } else if (strcmp(cmd, "poll") == 0) {
-        return (ttn.poll() == TTN_SUCCESSFUL_TRANSMISSION) ? CMD_OK : -1;
-    } else {
-        return CMD_PARAMS;
+    const cmd_t *cmd = cmd_find(ttn_commands, argv[1]);
+    if (cmd == NULL) {
+        print("Unhandled '%s', available commands:\n", argv[1]);
+        show_help(ttn_commands);
+        return CMD_OK;
     }
-    return CMD_OK;
+    return cmd->cmd(argc - 1, argv + 1);
 }
 
 static int do_help(int argc, char *argv[]);
-const cmd_t commands[] = {
+static const cmd_t commands[] = {
     { "led", do_led, "<r|g|b> <0|1> set red, green or blue led" },
     { "lora", do_lora, "<0|1> set the LoRa LED" },
     { "ttn", do_ttn, "TTN operations" },

@@ -24,3 +24,6 @@ typedef struct {
  */
 int cmd_process(const cmd_t *commands, char *line);
 
+// finds a command in the table, or returns NULL if it could not be found
+const cmd_t *cmd_find(const cmd_t * commands, const char *name);
+
