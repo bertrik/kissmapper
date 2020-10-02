@@ -254,8 +254,6 @@ static int do_help(int argc, char *argv[])
 
 void loop(void)
 {
-    static int last_rotary = 0;
-    static int last_button = 0;
     static unsigned long last_sent = 0;
 
     // parse command line
@@ -288,16 +286,12 @@ void loop(void)
         print(">");
     }
 
-    // show changes in button and rotary position
-    int rotary = get_rotary_value();
-    if (rotary != last_rotary) {
-        print("Rotary: %d\n", rotary);
-        last_rotary = rotary;
-    }
-    int button = get_button_value();
-    if (button != last_button) {
-        print("Button: %d\n", button);
-        last_button = button;
+    // clear error condition with button press
+    if (!ttn_ok) {
+        if (get_button_value()) {
+            print("Clearing error condition\n");
+            ttn_ok = true;
+        }
     }
 
     // send periodic poll
