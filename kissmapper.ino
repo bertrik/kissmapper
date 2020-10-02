@@ -223,7 +223,7 @@ static const cmd_t ttn_commands[] = {
 static int do_ttn(int argc, char *argv[])
 {
     if (argc < 2) {
-        print("Available '%s' commands\n", argv[0]);
+        print("Available '%s' commands:\n", argv[0]);
         show_help(ttn_commands);
         return CMD_OK;
     }
