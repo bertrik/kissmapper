@@ -18,6 +18,8 @@
 #define PIN_ROTARY_SW3  30      // PD5
 #define PIN_BUTTON      7       // PE6
 
+#define USB_CABLE_CONNECTED (USBSTA&(1<<VBUS))
+
 //Define both serial interfaces for easier use
 #define loraSerial			Serial1
 #define usbserial			Serial  //for commisioning and debugging
@@ -88,9 +90,9 @@ void setup(void)
     // attempt to resume from previously set session
     ttn_ok = ttn.personalize();
 
-    // green when initialized, red when error
+    // led off when initialized OK, red when error
     if (ttn_ok) {
-        set_rgb_led(0, 1, 0);
+        set_rgb_led(0, 0, 0);
     } else {
         set_rgb_led(1, 0, 0);
     }
@@ -256,57 +258,50 @@ void loop(void)
 {
     static unsigned long last_sent = 0;
 
-    // parse command line
-    bool haveLine = false;
-    if (Serial.available()) {
-        char c;
-        haveLine = EditLine(Serial.read(), &c);
-        Serial.write(c);
-    }
-    if (haveLine) {
-        int result = cmd_process(commands, line);
-        switch (result) {
-        case CMD_OK:
-            print("OK\n");
-            break;
-        case CMD_NO_CMD:
-            break;
-        case CMD_PARAMS:
-            print("Invalid params for %s\n", line);
-            show_help(commands);
-            break;
-        case CMD_UNKNOWN:
-            print("Unknown command, available commands:\n");
-            show_help(commands);
-            break;
-        default:
-            print("%d\n", result);
-            break;
-        }
-        print(">");
-    }
-
-    // clear error condition with button press
-    if (!ttn_ok) {
-        if (get_button_value()) {
-            print("Clearing error condition\n");
-            ttn_ok = true;
-        }
-    }
-
-    // send periodic poll
     unsigned long ms = millis();
-    if ((ms - last_sent) > 10000) {
-        last_sent = ms;
-        if (ttn_ok) {
-            set_rgb_led(0, 0, 1);
-            ttn_ok = (ttn.poll() == TTN_SUCCESSFUL_TRANSMISSION);
+
+    if (USB_CABLE_CONNECTED) {
+        // handle commands from serial console
+        set_rgb_led(0, 0, (ms / 500) % 2);
+
+        bool haveLine = false;
+        if (Serial.available()) {
+            char c;
+            haveLine = EditLine(Serial.read(), &c);
+            Serial.write(c);
+        }
+        if (haveLine) {
+            int result = cmd_process(commands, line);
+            switch (result) {
+            case CMD_OK:
+                print("OK\n");
+                break;
+            case CMD_NO_CMD:
+                break;
+            case CMD_PARAMS:
+                print("Invalid params for %s\n", line);
+                show_help(commands);
+                break;
+            case CMD_UNKNOWN:
+                print("Unknown command, available commands:\n");
+                show_help(commands);
+                break;
+            default:
+                print("%d\n", result);
+                break;
+            }
+            print(">");
+        }
+    } else {
+        // send periodic poll
+        unsigned long ms = millis();
+        if ((ms - last_sent) > 10000) {
+            last_sent = ms;
             if (ttn_ok) {
-                set_rgb_led(0, 0, 0);
-            } else {
-                set_rgb_led(1, 0, 0);
+                set_lora_led(true);
+                ttn.poll();
+                set_lora_led(false);
             }
         }
     }
-
 }
