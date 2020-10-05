@@ -217,7 +217,7 @@ static const cmd_t ttn_commands[] = {
     { "status", do_ttn_status, "Shows RN2483 status" },
     { "join", do_ttn_join, "Try to join" },
     { "poll", do_ttn_poll, "Poll the network" },
-    { "abp", do_ttn_abp, "<devadr> <nwkkey> <seskey> Perform ABP" },
+    { "abp", do_ttn_abp, "[<devadr> <nwkkey> <seskey>] Perform ABP" },
     { "otaa", do_ttn_otaa, "<appeui> <appkey> Perform OTAA" },
     { NULL, NULL, NULL }
 };
