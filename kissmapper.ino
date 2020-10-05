@@ -48,6 +48,11 @@ static int print(const char *fmt, ...)
     return result;
 }
 
+static void onMessage(const uint8_t *payload, size_t size, port_t port)
+{
+    print("Received %d bytes on port %d\n", size, port);
+}
+
 void setup(void)
 {
     //Attach USB. Necessary for the serial monitor to work
@@ -86,6 +91,7 @@ void setup(void)
 
     usbserial.println(F("--- Resetting RN module"));
     ttn.reset(false);
+    ttn.onMessage(onMessage);
 
     // attempt to resume from previously set session
     ttn_ok = ttn.personalize();
@@ -179,11 +185,6 @@ static int do_ttn_join(int argc, char *argv[])
     return ttn.join(1) ? CMD_OK : -1;
 }
 
-static int do_ttn_poll(int argc, char *argv[])
-{
-    return (ttn.poll() == TTN_SUCCESSFUL_TRANSMISSION) ? CMD_OK : -1;
-}
-
 static int do_ttn_abp(int argc, char *argv[])
 {
     bool result;
@@ -211,14 +212,35 @@ static int do_ttn_otaa(int argc, char *argv[])
     return result ? CMD_OK : -1;
 }
 
+static int do_ttn_send(int argc, char *argv[])
+{
+    int port = 1;
+    if (argc > 1) {
+        port = atoi(argv[1]);
+    }
+    bool confirm = false;
+    if (argc > 2) {
+        confirm = (atoi(argv[2]) != 0);
+    }
+    int sf = 7;
+    if (argc > 3) {
+        sf = atoi(argv[3]);
+    }
+
+    uint8_t rot = get_rotary_value();
+    uint8_t payload[1] = {rot};
+    ttn_response_t response = ttn.sendBytes(payload, sizeof(payload), port, confirm, sf);
+    return (response == TTN_SUCCESSFUL_TRANSMISSION) || (response == TTN_SUCCESSFUL_RECEIVE) ? CMD_OK : -1;
+}
+
 // ttn subcommands
 static const cmd_t ttn_commands[] = {
     { "reset", do_ttn_reset, "Resets the RN2483" },
     { "status", do_ttn_status, "Shows RN2483 status" },
     { "join", do_ttn_join, "Try to join" },
-    { "poll", do_ttn_poll, "Poll the network" },
     { "abp", do_ttn_abp, "[<devadr> <nwkkey> <seskey>] Perform ABP" },
     { "otaa", do_ttn_otaa, "<appeui> <appkey> Perform OTAA" },
+    { "send", do_ttn_send, "[port] [confirm] [sf] Send 1-byte data" },
     { NULL, NULL, NULL }
 };
 
@@ -299,7 +321,8 @@ void loop(void)
             last_sent = ms;
             if (ttn_ok) {
                 set_lora_led(true);
-                ttn.poll();
+                uint8_t rot = get_rotary_value();
+                ttn.sendBytes(&rot, 1, 1, false, 7);
                 set_lora_led(false);
             }
         }
