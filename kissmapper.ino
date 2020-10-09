@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <TheThingsNetwork.h>
+#include <SoftPWM.h>
 
 #include "editline.h"
 #include "cmdproc.h"
@@ -23,10 +24,6 @@
 //Define both serial interfaces for easier use
 #define loraSerial			Serial1
 #define usbserial			Serial  //for commisioning and debugging
-
-//Function prototypes
-static void set_lora_led(bool state);
-static void set_rgb_led(uint8_t R, uint8_t G, uint8_t B);
 
 //Global variables
 static TheThingsNetwork ttn(loraSerial, usbserial, TTN_FP_EU868);
@@ -53,6 +50,25 @@ static void onMessage(const uint8_t *payload, size_t size, port_t port)
     print("Received %d bytes on port %d\n", size, port);
 }
 
+static void set_led(int pin, int value)
+{
+    if (value == 0) {
+        SoftPWMEnd(pin);
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, HIGH);
+    } else {
+        SoftPWMSet(pin, 255 - value);
+    }
+}
+
+//! \brief Turn RGB led on with a given state colour of turn it off
+static void set_rgb_led(uint8_t r, uint8_t g, uint8_t b)
+{
+    set_led(PIN_LED_RED, r);
+    set_led(PIN_LED_GREEN, g);
+    set_led(PIN_LED_BLUE, b);
+}
+
 void setup(void)
 {
     //Attach USB. Necessary for the serial monitor to work
@@ -76,6 +92,7 @@ void setup(void)
     digitalWrite(PIN_LED_GREEN, 1);
     digitalWrite(PIN_LED_BLUE, 1);
     digitalWrite(PIN_LORA_LED, 1);
+    SoftPWMBegin();
 
     //set the analog reference to the internal reference
     analogReference(INTERNAL);
@@ -87,7 +104,7 @@ void setup(void)
     EditInit(line, sizeof(line));
 
     // yellow while initializing
-    set_rgb_led(1, 1, 0);
+    set_rgb_led(100, 100, 0);
 
     usbserial.println(F("--- Resetting RN module"));
     ttn.reset(false);
@@ -100,7 +117,7 @@ void setup(void)
     if (ttn_ok) {
         set_rgb_led(0, 0, 0);
     } else {
-        set_rgb_led(1, 0, 0);
+        set_rgb_led(100, 0, 0);
     }
 }
 
@@ -129,14 +146,6 @@ static void set_lora_led(bool state)
     digitalWrite(PIN_LORA_LED, state ? 0 : 1);
 }
 
-//! \brief Turn RGB led on with a given state colour of turn it off
-static void set_rgb_led(uint8_t r, uint8_t g, uint8_t b)
-{
-    digitalWrite(PIN_LED_RED, !r);
-    digitalWrite(PIN_LED_GREEN, !g);
-    digitalWrite(PIN_LED_BLUE, !b);
-}
-
 static void show_help(const cmd_t * cmds)
 {
     for (const cmd_t * cmd = cmds; cmd->cmd != NULL; cmd++) {
@@ -149,9 +158,9 @@ static int do_led(int argc, char *argv[])
     if (argc < 4) {
         return CMD_PARAMS;
     }
-    int r = (strcmp("0", argv[1]) != 0);
-    int g = (strcmp("0", argv[2]) != 0);
-    int b = (strcmp("0", argv[3]) != 0);
+    int r = atoi(argv[1]);
+    int g = atoi(argv[2]);
+    int b = atoi(argv[3]);
     print("set_rgb_led(%d,%d,%d)\n", r, g, b);
     set_rgb_led(r, g, b);
     return CMD_OK;
