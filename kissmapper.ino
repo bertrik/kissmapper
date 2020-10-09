@@ -284,7 +284,7 @@ void loop(void)
 
     if (USB_CABLE_CONNECTED) {
         // handle commands from serial console
-        set_rgb_led(0, 0, (ms / 500) % 2);
+        set_lora_led((ms / 500) % 2);
 
         bool haveLine = false;
         if (Serial.available()) {
