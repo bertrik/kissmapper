@@ -45,11 +45,6 @@ static int print(const char *fmt, ...)
     return result;
 }
 
-static void onMessage(const uint8_t *payload, size_t size, port_t port)
-{
-    print("Received %d bytes on port %d\n", size, port);
-}
-
 static void set_led(int pin, int value)
 {
     if (value == 0) {
@@ -67,6 +62,14 @@ static void set_rgb_led(uint8_t r, uint8_t g, uint8_t b)
     set_led(PIN_LED_RED, r);
     set_led(PIN_LED_GREEN, g);
     set_led(PIN_LED_BLUE, b);
+}
+
+static void onMessage(const uint8_t *payload, size_t size, port_t port)
+{
+    print("Received %d bytes on port %d\n", size, port);
+    if (size == 3) {
+        set_rgb_led(payload[0], payload[1], payload[2]);
+    }
 }
 
 void setup(void)
