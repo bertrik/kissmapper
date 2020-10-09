@@ -158,15 +158,25 @@ static void show_help(const cmd_t * cmds)
 
 static int do_led(int argc, char *argv[])
 {
-    if (argc < 4) {
-        return CMD_PARAMS;
+    if (argc == 2) {
+        // assume hex encoded color
+        uint32_t rgb = strtoul(argv[1], NULL, 16);
+        uint8_t r = (rgb >> 16) & 0xFF;
+        uint8_t g = (rgb >> 8) & 0xFF;
+        uint8_t b = (rgb >> 0) & 0xFF;
+        set_rgb_led(r, g, b);
+        print("set_rgb_led(%d,%d,%d)\n", r, g, b);
+        return CMD_OK;
     }
-    int r = atoi(argv[1]);
-    int g = atoi(argv[2]);
-    int b = atoi(argv[3]);
-    print("set_rgb_led(%d,%d,%d)\n", r, g, b);
-    set_rgb_led(r, g, b);
-    return CMD_OK;
+    if (argc == 4) {
+        int r = atoi(argv[1]);
+        int g = atoi(argv[2]);
+        int b = atoi(argv[3]);
+        print("set_rgb_led(%d,%d,%d)\n", r, g, b);
+        set_rgb_led(r, g, b);
+        return CMD_OK;
+    }
+    return CMD_PARAMS;
 }
 
 static int do_lora(int argc, char *argv[])
@@ -275,7 +285,7 @@ static int do_ttn(int argc, char *argv[])
 
 static int do_help(int argc, char *argv[]);
 static const cmd_t commands[] = {
-    { "led", do_led, "<r|g|b> <0|1> set red, green or blue led" },
+    { "led", do_led, "<r g b> or <rgb-hexcode> set RGB led" },
     { "lora", do_lora, "<0|1> set the LoRa LED" },
     { "ttn", do_ttn, "TTN operations" },
     { "help", do_help, "Show help" },
