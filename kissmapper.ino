@@ -301,6 +301,7 @@ static int do_help(int argc, char *argv[])
 void loop(void)
 {
     static unsigned long last_sent = 0;
+    static bool button_pressed = false;
 
     unsigned long ms = millis();
 
@@ -337,16 +338,23 @@ void loop(void)
             print(">");
         }
     } else {
+        // check button, if pressed clear LED and mark button_pressed
+        if (!button_pressed && get_button_value()) {
+            set_rgb_led(0, 0, 0);
+            button_pressed = true;
+        }
+
         // send periodic poll
         unsigned long ms = millis();
         if ((ms - last_sent) > 10000) {
             last_sent = ms;
-            if (ttn_ok) {
-                set_lora_led(true);
-                uint8_t rot = get_rotary_value();
-                ttn.sendBytes(&rot, 1, 1, false, 7);
-                set_lora_led(false);
-            }
+            uint8_t rot = get_rotary_value();
+            int port = button_pressed ? 128 : 1;
+            set_lora_led(true);
+            ttn.sendBytes(&rot, 1, port, false, 7);
+            set_lora_led(false);
+            button_pressed = false;
         }
     }
 }
+
