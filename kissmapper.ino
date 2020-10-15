@@ -350,12 +350,14 @@ void loop(void)
         int period = millis() / SEND_INTERVAL_MS;
         if (period != last_period) {
             last_period = period;
-            uint8_t rot = get_rotary_value();
-            int port = button_pressed ? 128 : 1;
+            uint8_t data = get_rotary_value();
+            if (button_pressed) {
+                data |= 128;
+                button_pressed = false;
+            }
             set_lora_led(true);
-            ttn.sendBytes(&rot, 1, port, false, 7);
+            ttn.sendBytes(&data, 1, 1, false, 7);
             set_lora_led(false);
-            button_pressed = false;
         }
     }
 }
