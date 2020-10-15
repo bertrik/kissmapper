@@ -9,6 +9,8 @@
 #include "editline.h"
 #include "cmdproc.h"
 
+#define SEND_INTERVAL_MS    10000
+
 #define PIN_LED_RED     12      // PD6
 #define PIN_LED_GREEN   6       // PD7
 #define PIN_LED_BLUE    11      // PB7
@@ -300,7 +302,7 @@ static int do_help(int argc, char *argv[])
 
 void loop(void)
 {
-    static unsigned long last_sent = 0;
+    static int last_period = -1;
     static bool button_pressed = false;
 
     unsigned long ms = millis();
@@ -345,9 +347,9 @@ void loop(void)
         }
 
         // send periodic poll
-        unsigned long ms = millis();
-        if ((ms - last_sent) > 10000) {
-            last_sent = ms;
+        int period = millis() / SEND_INTERVAL_MS;
+        if (period != last_period) {
+            last_period = period;
             uint8_t rot = get_rotary_value();
             int port = button_pressed ? 128 : 1;
             set_lora_led(true);
