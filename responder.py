@@ -80,7 +80,7 @@ def main():
     parser.add_argument("-s", "--server", help="The MQTT server, e.g. eu.thethings.network",
                         default="eu.thethings.network")
     parser.add_argument("-u", "--username", help="The MQTT user name (TTN application name)",
-                        default="lorakiss-app", required=True)
+                        default="lorakiss-app")
     parser.add_argument("-p", "--password", help="The MQTT password (TTN access key)",
                         default="ttn-account-v2.wsHo81XnbhmQ5NJYm6UCHhfupunktulDH-1AXVE3YI4")
     args = parser.parse_args()
